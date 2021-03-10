@@ -1,0 +1,9 @@
+path_to_images: 'images/idao_dataset/train/ER/*.png'
+images_range: [200, 201]
+obs:
+  range: [230, 350]
+  n_bins: 40
+init_values:
+  mu: 290
+  sigma: 6
+  fr: 0.005
