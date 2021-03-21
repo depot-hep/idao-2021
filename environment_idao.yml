@@ -15,8 +15,8 @@ dependencies:
     - pyyaml
     - line_profiler
     - memory_profiler
-    - zfit==0.5
-    - mplhep==0.2
+    - zfit>=0.5.6
+    - mplhep>=0.2.18
   - uproot=4.0
   - scikit-learn=0.24
   - scipy=1.6
