@@ -1,5 +1,9 @@
 path_to_images: 'images/idao_dataset/train/ER/*.png'
-images_range: [200, 201]
+images_range: [200, 202] # set to -1 to run on all images
+log_step: 1
+fit_verbosity: 7 # values from 0 to 10 are valid
+output_folder_data: 'super_puper_data' # don't forget to create this directory
+output_folder_images: 'fit_results' # don't forget to create this directory
 obs:
   range: [230, 350]
   n_bins: 40

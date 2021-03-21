@@ -1,9 +1,10 @@
 import numpy as np
+import pandas as pd
+from scipy.stats import chisquare
 from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from PIL import Image
 
-import zfit
 import mplhep
 mplhep.set_style('CMS')
 
@@ -21,29 +22,75 @@ def counts_to_datapoints(ima_x, ima_y, obs_left, obs_right):
     # y_samples = np.random.choice(obs_bin_centers, size=int(take_fraction*ima_y.sum()), p=ima_y/ima_y.sum())
     return x_samples, y_samples
 
-def build_model(obs, obs_left, obs_right, init_values):
-    # signal component
-    mu = zfit.Parameter("mu", init_values['mu'], obs_left, obs_right)
-    sigma = zfit.Parameter("sigma", init_values['sigma'], 0.01, obs_right - obs_left)
-    signal = zfit.pdf.Gauss(mu=mu, sigma=sigma, obs=obs, name='sig')
+def extract_global_features(image_path):
+    global_features = {}
+    if image_path.split('/')[-1].split('_')[5] == 'ER':
+        global_features['event_class'] = 'ER'
+        global_features['event_energy'] = image_path.split('/')[-1].split('_')[6]
 
-    # background component
-    background = zfit.pdf.Uniform(obs_left, obs_right, obs=obs, name='bkgr')
-    # lambd = zfit.Parameter("lambda", -0.01, -1, -0.000001)
-    # background = zfit.pdf.Exponential(lambd, obs=obs)
+    elif image_path.split('/')[-1].split('_')[6] == 'NR':
+        global_features['event_class'] = 'NR'
+        global_features['event_energy'] = image_path.split('/')[-1].split('_')[7]
+    else:
+        raise Exception("failed to infer event class")
+    global_features['image_name'] = image_path.split('/')[-1].split(';1.png')[0]
+    global_features['event_ID'] = image_path.split('/')[-1].split('_')[-1].split(';')[0][2:]
+    global_features['event_angle'] = image_path.split('/')[-1].split('_')[0]
+    return global_features
 
-    # combing sig and bkgr together
-    fr = zfit.Parameter("fr", init_values['fr'], 0, 1)
-    model = zfit.pdf.SumPDF([signal, background], fracs=fr)
-    # n_bkg = zfit.Parameter('n_bkg', sum(ima_x))
-    # n_sig = zfit.Parameter('n_sig', 1000)
-    # gauss_extended = gauss.create_extended(n_sig)
-    # exp_extended = exponential.create_extended(n_bkg)
-    # uni_extended = uniform.create_extended(n_bkg)
-    # model = zfit.pdf.SumPDF([gauss_extended, uni_extended])
-    return model
+def extract_fit_features(model, data_proj_dict, ima_proj, obs_bin_centers, minimizer_results):
+    fit_features = {p.name: p.numpy() for p in model.get_params()}
+    #
+    total_count = (data_proj_dict.n_events).numpy()
+    fr = fit_features['fr']
+    sigma = fit_features['sigma']
+    background = model.get_models()[1]
+    #
+    fit_features['sig_count'] = total_count * fr
+    fit_features['bkgr_count'] = total_count * (1-fr)
+    fit_features['sig_density'] = total_count * fr / sigma
+    fit_features['chi2'] = chisquare(sum(ima_proj)*model.pdf(obs_bin_centers), ima_proj, ddof=3)[0] # ddof hardcoded to number of fitted parameters
+    fit_features['chi2_pvalue'] = chisquare(sum(ima_proj)*model.pdf(obs_bin_centers), ima_proj, ddof=3)[1] # ddof hardcoded to number of fitted parameters
+    fit_features['n_excess_bins'] = sum(ima_proj > (background.pdf(obs_bin_centers)[0] * sum(ima_proj)).numpy())
+    #
+    fit_features.update(minimizer_results.info['original'])
+    hesse_dict = dict(minimizer_results.hesse())
+    fit_features['fr_error'] = list(hesse_dict.values())[0]['error']
+    fit_features['mu_error'] = list(hesse_dict.values())[1]['error']
+    fit_features['sigma_error'] = list(hesse_dict.values())[2]['error']
+    #
+    return fit_features
 
-def plot_projections(obs_grid, n_bins, data_proj_dict, model_proj_dict, plot_scaling_dict, fit_params_dict, savefig=True, image_name=None):
+def extract_fit_global_features(fit_features, ima):
+    fit_global_features = {}
+    assert np.sum(ima['x']) == np.sum(ima['x'])
+    fit_global_features['total_count'] = np.sum(ima['x'])
+    fit_global_features['dmu'] = fit_features['x']['mu'] - fit_features['y']['mu']
+    fit_global_features['dsigma'] = fit_features['x']['sigma'] - fit_features['y']['sigma']
+    fit_global_features['dfr'] = fit_features['x']['fr'] - fit_features['y']['fr']
+    return fit_global_features
+
+def merge_proj_dict(fit_features):
+    merged_fit_features = {}
+    for proj in fit_features.keys():
+        for feature in fit_features[proj].keys():
+            merged_fit_features[f'{feature}_{proj}'] = fit_features[proj][feature]
+    return merged_fit_features
+
+def fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=True, log_index=None, output_folder='.'):
+    merged_fit_features = merge_proj_dict(fit_features)
+    total_features = dict(global_features, **merged_fit_features, **fit2D_features)
+    entry = pd.Series(total_features)
+    df = df.append(entry, ignore_index=True)
+    if log_me:
+        if log_index != -1:
+            df_name = f'super_puper_df_log_{log_index}.csv'
+        else:
+            df_name = f'super_puper_df.csv'
+        df.to_csv(f'{output_folder}/{df_name}')
+    return df
+
+def plot_projections(obs_grid, n_bins, data_proj_dict, model_proj_dict, plot_scaling_dict, fit_params_dict, savefig=True, output_folder='.', image_name=None):
     fig, axs = plt.subplots(1, 2, figsize=(20,7))
     data_projx = data_proj_dict['x']
     data_projy = data_proj_dict['y']
@@ -76,7 +123,7 @@ def plot_projections(obs_grid, n_bins, data_proj_dict, model_proj_dict, plot_sca
         fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params_dict['x']['fr']:.4f}")
         axs[0].legend(handles=[mu_patch, sigma_patch, fr_patch])
     ##
-    axs[1].plot(obs_grid, model_projy*plot_scaling_y, label="Sum - Model")
+    axs[1].plot(obs_grid, model_projy*plot_scaling_y, label="Model")
     # axs[1].plot(obs_grid, model_projy_sig*plot_scaling_y, label="Gauss - Signal")
     # axs[1].plot(obs_grid, model_projy_bkgr*plot_scaling_y, label="Background")
     mplhep.histplot(np.histogram(data_projy, bins=n_bins), yerr=True, color='black', histtype='errorbar',
@@ -93,4 +140,4 @@ def plot_projections(obs_grid, n_bins, data_proj_dict, model_proj_dict, plot_sca
         fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params_dict['y']['fr']:.4f}")
         axs[1].legend(handles=[mu_patch, sigma_patch, fr_patch])
     if savefig:
-        fig.savefig(f"fit_results/{image_name.split('.png')[0]}_fitted.png")
+        fig.savefig(f"{output_folder}/{image_name.split('.png')[0]}_fitted.png")
