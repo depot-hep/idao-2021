@@ -65,7 +65,6 @@ for image_index, image_path in enumerate(image_paths):
                sigma=sigma_init,
                fr=fr_init,
                N=sum(ima[proj]),)
-        m.errordef = 1
         m.migrad()
         m.migrad()
         m.hesse()
@@ -78,5 +77,5 @@ for image_index, image_path in enumerate(image_paths):
     global_features = extract_global_features(image_path)
     df = fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
     plot_projections(ima, model_prediction, obs_edges, obs_grid, fit_params=fit_features,
-                     savefig=True, output_folder=output_folder_images, image_name=global_features['image_name'])
+                     close_image=True, savefig=True, output_folder=output_folder_images, image_name=global_features['image_name'])
     gc.collect()

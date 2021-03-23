@@ -88,7 +88,7 @@ def fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=Tru
         df.to_csv(f'{output_folder}/{df_name}')
     return df
 
-def plot_projections(data_counts, model_prediction, data_bin_edges, model_prediction_grid, fit_params=None, savefig=True, output_folder='.', image_name=None):
+def plot_projections(data_counts, model_prediction, data_bin_edges, model_prediction_grid, fit_params=None, close_image=False, savefig=True, output_folder='.', image_name=None):
     fig, axs = plt.subplots(1, 2, figsize=(20,7))
     data_counts_x = data_counts['x']
     data_counts_y = data_counts['y']
@@ -138,4 +138,5 @@ def plot_projections(data_counts, model_prediction, data_bin_edges, model_predic
         axs[1].legend(handles=[mu_patch, sigma_patch, fr_patch, N_patch])
     if savefig:
         fig.savefig(f"{output_folder}/{image_name.split('.png')[0]}_fitted.png")
-    plt.close(fig)
+    if close_image:
+        plt.close(fig)  
