@@ -73,20 +73,30 @@ for image_index, image_path in enumerate(image_paths):
                sigma=sigma_init,
                fr=fr_init,
                N=sum(ima[proj]),)
-        m.migrad()
-        m.migrad()
         try:
-           m.hesse()
+            m.migrad()
         except:
-           print('m.hesse() error, file: ', image_path)
-           hesse_calculated = False
+            print('m.migrad() error, file: ', image_path)
+            hesse_calculated = False        
+
+        try:
+            m.migrad()
+        except:  
+            print('m.migrad() error, file: ', image_path)
+            hesse_calculated = False
+
+        try:
+            m.hesse()
+        except:
+            print('m.hesse() error, file: ', image_path)
+            hesse_calculated = False
         
         if hesse_calculated:
-           fit_param_values = dict(m.values)
-           model_prediction[proj]['model'] = model(obs_grid, **fit_param_values)
-           model_prediction[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
-           model_prediction[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
-           fit_features[proj] = extract_fit_features(m, model, ima[proj], obs_bin_centers)
+            fit_param_values = dict(m.values)
+            model_prediction[proj]['model'] = model(obs_grid, **fit_param_values)
+            model_prediction[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
+            model_prediction[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
+            fit_features[proj] = extract_fit_features(m, model, ima[proj], obs_bin_centers)
     
     if hesse_calculated:
        fit2D_features = extract_fit_global_features(fit_features, ima)
