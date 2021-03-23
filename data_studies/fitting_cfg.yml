@@ -1,5 +1,5 @@
 path_to_images: '../../idao_dataset/train/NR/*.png'
-images_range: -1 # set to -1 to run on all images
+images_range: [2805,2811] # set to -1 to run on all images
 log_step: 1000
 fit_verbosity: 0 # values from 0 to 2 are valid
 output_folder_data: 'output/NR' # don't forget to create this directory
