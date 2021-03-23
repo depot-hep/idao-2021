@@ -53,7 +53,7 @@ t_0 = time.time()
 
 # loop over images
 for image_index, image_path in enumerate(image_paths):
-    if image_index % 10 == 0:
+    if image_index % 1000 == 0:
     	print('Image: ', image_index)
 
     log_me = not (image_index%log_step) or (image_index == len(image_paths)-1)
