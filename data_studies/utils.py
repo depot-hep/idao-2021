@@ -38,33 +38,31 @@ def extract_global_features(image_path):
     global_features['event_angle'] = image_path.split('/')[-1].split('_')[0]
     return global_features
 
-def extract_fit_features(model, data_proj_dict, ima_proj, obs_bin_centers, minimizer_results):
-    fit_features = {p.name: p.numpy() for p in model.get_params()}
+def extract_fit_features(minuit_obj, model, data, obs_bin_centers):
+    fit_features = dict(minuit_obj.values)
     #
-    total_count = (data_proj_dict.n_events).numpy()
+    total_count = fit_features['N']
     fr = fit_features['fr']
     sigma = fit_features['sigma']
-    background = model.get_models()[1]
     #
     fit_features['sig_count'] = total_count * fr
     fit_features['bkgr_count'] = total_count * (1-fr)
     fit_features['sig_density'] = total_count * fr / sigma
-    fit_features['chi2'] = chisquare(sum(ima_proj)*model.pdf(obs_bin_centers), ima_proj, ddof=3)[0] # ddof hardcoded to number of fitted parameters
-    fit_features['chi2_pvalue'] = chisquare(sum(ima_proj)*model.pdf(obs_bin_centers), ima_proj, ddof=3)[1] # ddof hardcoded to number of fitted parameters
-    fit_features['n_excess_bins'] = sum(ima_proj > (background.pdf(obs_bin_centers)[0] * sum(ima_proj)).numpy())
+    fit_features['chi2'], fit_features['chi2_pvalue'] = chisquare(model(obs_bin_centers, **dict(minuit_obj.values)), data, ddof=4) # ddof hardcoded to number of fitted parameters
+    fit_features['n_excess_bins'] = sum(data > total_count * (1-fr) / len(data))
     #
-    fit_features.update(minimizer_results.info['original'])
-    hesse_dict = dict(minimizer_results.hesse())
-    fit_features['fr_error'] = list(hesse_dict.values())[0]['error']
-    fit_features['mu_error'] = list(hesse_dict.values())[1]['error']
-    fit_features['sigma_error'] = list(hesse_dict.values())[2]['error']
+    fit_features['fr_error'] = dict(minuit_obj.errors)['fr']
+    fit_features['mu_error'] = dict(minuit_obj.errors)['mu']
+    fit_features['sigma_error'] = dict(minuit_obj.errors)['sigma']
+    fit_features['N_error'] = dict(minuit_obj.errors)['N']
     #
+    fit_features.update(dict(minuit_obj.fmin))
     return fit_features
 
 def extract_fit_global_features(fit_features, ima):
     fit_global_features = {}
-    assert np.sum(ima['x']) == np.sum(ima['x'])
-    fit_global_features['total_count'] = np.sum(ima['x'])
+    # assert np.sum(ima['x']) == np.sum(ima['y'])
+    # fit_global_features['total_count'] = np.sum(ima['x'])
     fit_global_features['dmu'] = fit_features['x']['mu'] - fit_features['y']['mu']
     fit_global_features['dsigma'] = fit_features['x']['sigma'] - fit_features['y']['sigma']
     fit_global_features['dfr'] = fit_features['x']['fr'] - fit_features['y']['fr']
@@ -90,54 +88,54 @@ def fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=Tru
         df.to_csv(f'{output_folder}/{df_name}')
     return df
 
-def plot_projections(obs_grid, n_bins, data_proj_dict, model_proj_dict, plot_scaling_dict, fit_params_dict, savefig=True, output_folder='.', image_name=None):
+def plot_projections(data_counts, model_prediction, data_bin_edges, model_prediction_grid, fit_params=None, savefig=True, output_folder='.', image_name=None):
     fig, axs = plt.subplots(1, 2, figsize=(20,7))
-    data_projx = data_proj_dict['x']
-    data_projy = data_proj_dict['y']
+    data_counts_x = data_counts['x']
+    data_counts_y = data_counts['y']
     #
-    model_projx = model_proj_dict['x']['model']
-    model_projx_sig = model_proj_dict['x']['sig']
-    model_projx_bkgr = model_proj_dict['x']['bkgr']
+    model_prediction_x = model_prediction['x']['model']
+    model_prediction_x_sig = model_prediction['x']['sig']
+    model_prediction_x_bkgr = model_prediction['x']['bkgr']
     #
-    model_projy = model_proj_dict['y']['model']
-    model_projy_sig = model_proj_dict['y']['sig']
-    model_projy_bkgr = model_proj_dict['y']['bkgr']
-    #
-    plot_scaling_x = plot_scaling_dict['x']
-    plot_scaling_y = plot_scaling_dict['y']
+    model_prediction_y = model_prediction['y']['model']
+    model_prediction_y_sig = model_prediction['y']['sig']
+    model_prediction_y_bkgr = model_prediction['y']['bkgr']
     ##
-    axs[0].plot(obs_grid, model_projx*plot_scaling_x, label="Sum - Model")
-    # axs[0].plot(obs_grid, model_projx_sig*plot_scaling_x, label="Gauss - Signal")
-    # axs[0].plot(obs_grid, model_projx_bkgr*plot_scaling_x, label="Background")
-    mplhep.histplot(np.histogram(data_projx, bins=n_bins), yerr=True, color='black', histtype='errorbar',
+    axs[0].plot(model_prediction_grid, model_prediction_x, label="Model", linewidth=5)
+    # axs[0].plot(model_prediction_grid, model_prediction_x_sig, label="Signal", linewidth=5)
+    # axs[0].plot(model_prediction_grid, model_prediction_x_bkgr, label="Background", linewidth=5)
+    mplhep.histplot(data_counts_x, data_bin_edges, yerr=True, color='black', histtype='errorbar',
                     markersize=17, capsize=2.5,
                     markeredgewidth=1.5, zorder=1,
                     elinewidth=1.5, ax=axs[0]
                     )
     axs[0].set_title('X projection')
-    if fit_params_dict:
-        assert 'x' in fit_params_dict
-        assert 'mu' in fit_params_dict['x'] and 'sigma' in fit_params_dict['x'] and 'fr' in fit_params_dict['x']
-        mu_patch = mpatches.Patch(color='none', label=f"mu = {fit_params_dict['x']['mu']:.2f}")
-        sigma_patch = mpatches.Patch(color='none', label=f"sigma = {fit_params_dict['x']['sigma']:.2f}")
-        fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params_dict['x']['fr']:.4f}")
-        axs[0].legend(handles=[mu_patch, sigma_patch, fr_patch])
+    if fit_params:
+        assert 'x' in fit_params
+        assert 'mu' in fit_params['x'] and 'sigma' in fit_params['x'] and 'fr' in fit_params['x']
+        mu_patch = mpatches.Patch(color='none', label=f"mu = {fit_params['x']['mu']:.2f}")
+        sigma_patch = mpatches.Patch(color='none', label=f"sigma = {fit_params['x']['sigma']:.2f}")
+        fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params['x']['fr']:.4f}")
+        N_patch = mpatches.Patch(color='none', label=f"N = {fit_params['x']['N']:.0f}")
+        axs[0].legend(handles=[mu_patch, sigma_patch, fr_patch, N_patch])
     ##
-    axs[1].plot(obs_grid, model_projy*plot_scaling_y, label="Model")
-    # axs[1].plot(obs_grid, model_projy_sig*plot_scaling_y, label="Gauss - Signal")
-    # axs[1].plot(obs_grid, model_projy_bkgr*plot_scaling_y, label="Background")
-    mplhep.histplot(np.histogram(data_projy, bins=n_bins), yerr=True, color='black', histtype='errorbar',
+    axs[1].plot(model_prediction_grid, model_prediction_y, label="Model", linewidth=5)
+    # axs[1].plot(model_prediction_grid, model_prediction_y_sig, label="Signal", linewidth=5)
+    # axs[1].plot(model_prediction_grid, model_prediction_y_bkgr, label="Background", linewidth=5)
+    mplhep.histplot(data_counts_y, data_bin_edges, yerr=True, color='black', histtype='errorbar',
                     markersize=17, capsize=2.5,
                     markeredgewidth=1.5, zorder=1,
                     elinewidth=1.5, ax=axs[1]
                     )
     axs[1].set_title('Y projection')
-    if fit_params_dict:
-        assert 'y' in fit_params_dict
-        assert 'mu' in fit_params_dict['y'] and 'sigma' in fit_params_dict['y'] and 'fr' in fit_params_dict['y']
-        mu_patch = mpatches.Patch(color='none', label=f"mu = {fit_params_dict['y']['mu']:.2f}")
-        sigma_patch = mpatches.Patch(color='none', label=f"sigma = {fit_params_dict['y']['sigma']:.2f}")
-        fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params_dict['y']['fr']:.4f}")
-        axs[1].legend(handles=[mu_patch, sigma_patch, fr_patch])
+    if fit_params:
+        assert 'y' in fit_params
+        assert 'mu' in fit_params['y'] and 'sigma' in fit_params['y'] and 'fr' in fit_params['y']
+        mu_patch = mpatches.Patch(color='none', label=f"mu = {fit_params['y']['mu']:.2f}")
+        sigma_patch = mpatches.Patch(color='none', label=f"sigma = {fit_params['y']['sigma']:.2f}")
+        fr_patch = mpatches.Patch(color='none', label=f"fr = {fit_params['y']['fr']:.4f}")
+        N_patch = mpatches.Patch(color='none', label=f"N = {fit_params['y']['N']:.0f}")
+        axs[1].legend(handles=[mu_patch, sigma_patch, fr_patch, N_patch])
     if savefig:
         fig.savefig(f"{output_folder}/{image_name.split('.png')[0]}_fitted.png")
+    plt.close(fig)
