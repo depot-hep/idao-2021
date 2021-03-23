@@ -15,6 +15,8 @@ from iminuit import Minuit
 import mplhep
 mplhep.set_style('CMS')
 
+import time
+
 ############################################################################
 
 parser = argparse.ArgumentParser()
@@ -47,8 +49,13 @@ fr_init = cfg_dict['init_values']['fr']
 # output dataframe
 df = pd.DataFrame()
 
+t_0 = time.time()
+
 # loop over images
 for image_index, image_path in enumerate(image_paths):
+    if image_index % 10 == 0:
+    	print('Image: ', image_index)
+
     log_me = not (image_index%log_step) or (image_index == len(image_paths)-1)
     log_index = image_index if image_index != len(image_paths)-1 else -1
     #
@@ -79,3 +86,6 @@ for image_index, image_path in enumerate(image_paths):
     plot_projections(ima, model_prediction, obs_edges, obs_grid, fit_params=fit_features,
                      close_image=True, savefig=True, output_folder=output_folder_images, image_name=global_features['image_name'])
     gc.collect()
+
+print('time: ', time.time() - t_0)
+
