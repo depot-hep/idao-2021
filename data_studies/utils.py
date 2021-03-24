@@ -24,19 +24,30 @@ def counts_to_datapoints(ima_x, ima_y, obs_left, obs_right):
 
 def extract_global_features(image_path):
     global_features = {}
-    if image_path.split('/')[-1].split('_')[5] == 'ER':
-        global_features['event_class'] = 'ER'
-        global_features['event_energy'] = image_path.split('/')[-1].split('_')[6]
-
-    elif image_path.split('/')[-1].split('_')[6] == 'NR':
-        global_features['event_class'] = 'NR'
-        global_features['event_energy'] = image_path.split('/')[-1].split('_')[7]
+    global_features['event_class'] = np.nan
+    global_features['event_energy'] = np.nan
+    global_features['image_name'] = np.nan
+    global_features['event_ID'] = np.nan
+    global_features['event_angle'] = np.nan 
+    
+    if len(image_path.split('/')[-1].split('_')) < 2:
+        global_features['image_name'] = image_path.split('/')[-1].split('.png')[0]
+        return global_features
     else:
-        raise Exception("failed to infer event class")
-    global_features['image_name'] = image_path.split('/')[-1].split(';1.png')[0]
-    global_features['event_ID'] = image_path.split('/')[-1].split('_')[-1].split(';')[0][2:]
-    global_features['event_angle'] = image_path.split('/')[-1].split('_')[0]
-    return global_features
+        if image_path.split('/')[-1].split('_')[5] == 'ER':
+            global_features['event_class'] = 'ER'
+            global_features['event_energy'] = image_path.split('/')[-1].split('_')[6]
+
+        elif image_path.split('/')[-1].split('_')[6] == 'NR':
+            global_features['event_class'] = 'NR'
+            global_features['event_energy'] = image_path.split('/')[-1].split('_')[7]
+        else:
+            raise Exception("failed to infer event class")
+ 
+        global_features['image_name'] = image_path.split('/')[-1].split(';1.png')[0]
+        global_features['event_ID'] = image_path.split('/')[-1].split('_')[-1].split(';')[0][2:]
+        global_features['event_angle'] = image_path.split('/')[-1].split('_')[0]
+        return global_features
 
 def extract_fit_features(minuit_obj, model, data, obs_bin_centers):
     fit_features = dict(minuit_obj.values)

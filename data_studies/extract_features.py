@@ -15,6 +15,8 @@ from iminuit import Minuit
 import mplhep
 mplhep.set_style('CMS')
 
+import time
+
 ############################################################################
 
 parser = argparse.ArgumentParser()
@@ -47,8 +49,14 @@ fr_init = cfg_dict['init_values']['fr']
 # output dataframe
 df = pd.DataFrame()
 
+t_0 = time.time()
+
 # loop over images
 for image_index, image_path in enumerate(image_paths):
+    hesse_calculated = True
+    if image_index % 1000 == 0:
+    	print('Image: ', image_index)
+
     log_me = not (image_index%log_step) or (image_index == len(image_paths)-1)
     log_index = image_index if image_index != len(image_paths)-1 else -1
     #
@@ -65,17 +73,38 @@ for image_index, image_path in enumerate(image_paths):
                sigma=sigma_init,
                fr=fr_init,
                N=sum(ima[proj]),)
-        m.migrad()
-        m.migrad()
-        m.hesse()
-        fit_param_values = dict(m.values)
-        model_prediction[proj]['model'] = model(obs_grid, **fit_param_values)
-        model_prediction[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
-        model_prediction[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
-        fit_features[proj] = extract_fit_features(m, model, ima[proj], obs_bin_centers)
-    fit2D_features = extract_fit_global_features(fit_features, ima)
-    global_features = extract_global_features(image_path)
-    df = fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
-    plot_projections(ima, model_prediction, obs_edges, obs_grid, fit_params=fit_features,
+        try:
+            m.migrad()
+        except:
+            print('m.migrad() error, file: ', image_path)
+            hesse_calculated = False        
+
+        try:
+            m.migrad()
+        except:  
+            print('m.migrad() error, file: ', image_path)
+            hesse_calculated = False
+
+        try:
+            m.hesse()
+        except:
+            print('m.hesse() error, file: ', image_path)
+            hesse_calculated = False
+        
+        if hesse_calculated:
+            fit_param_values = dict(m.values)
+            model_prediction[proj]['model'] = model(obs_grid, **fit_param_values)
+            model_prediction[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
+            model_prediction[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
+            fit_features[proj] = extract_fit_features(m, model, ima[proj], obs_bin_centers)
+    
+    if hesse_calculated:
+       fit2D_features = extract_fit_global_features(fit_features, ima)
+       global_features = extract_global_features(image_path)
+       df = fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
+       plot_projections(ima, model_prediction, obs_edges, obs_grid, fit_params=fit_features,
                      close_image=True, savefig=True, output_folder=output_folder_images, image_name=global_features['image_name'])
-    gc.collect()
+       gc.collect()
+
+print('time: ', time.time() - t_0)
+
