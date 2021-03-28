@@ -93,8 +93,8 @@ for image_index, image_path in enumerate(image_paths):
        df = fill_dataframe(df, global_features, fit_features, fit_global_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
        plot_projections(ima, model_prediction_grid, obs_edges, obs_grid, fit_params=fit_features,
                      close_image=True, save_fig=True, output_folder=output_folder_images, image_name=global_features['image_name'].split('.png')[0])
-       plot_projections(ima, model_bkgr_only_prediction_grid, obs_edges, obs_grid, #fit_params=fit_features,
-                     close_image=True, save_fig=True, output_folder=output_folder_images, image_name=global_features['image_name'].split('.png')[0]+'_bkgr_only')
+       # plot_projections(ima, model_bkgr_only_prediction_grid, obs_edges, obs_grid, #fit_params=fit_features,
+       #               close_image=True, save_fig=True, output_folder=output_folder_images, image_name=global_features['image_name'].split('.png')[0]+'_bkgr_only')
        gc.collect()
 
 print('time: ', time.time() - t_0)
