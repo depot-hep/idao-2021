@@ -10,7 +10,7 @@ import gc
 import yaml
 
 from utils import *
-from fit_model import norm_pdf, uniform_pdf, model, MyChi2
+from fit_model import norm_pdf, uniform_pdf, model, model_bkgr_only, fit_model
 from iminuit import Minuit
 import mplhep
 mplhep.set_style('CMS')
@@ -53,7 +53,6 @@ t_0 = time.time()
 
 # loop over images
 for image_index, image_path in enumerate(image_paths):
-    hesse_calculated = True
     if image_index % 1000 == 0:
     	print('Image: ', image_index)
 
@@ -65,46 +64,37 @@ for image_index, image_path in enumerate(image_paths):
 
     # fit projections
     minimizer_results, fit_features, global_features = {}, {}, {}
-    model_prediction = {'x': {}, 'y': {}}
+    model_prediction_grid, model_bkgr_only_prediction_grid = {'x': {}, 'y': {}}, {'x': {}, 'y': {}}
+    fit_OK = True
     for proj in ['x', 'y']:
-        chi2 = MyChi2(model, obs_bin_centers, ima[proj])
-        m = Minuit(chi2, print_level=fit_verbosity, errordef=1,
-               mu=mu_init,
-               sigma=sigma_init,
-               fr=fr_init,
-               N=sum(ima[proj]),)
-        try:
-            m.migrad()
-        except:
-            print('m.migrad() error, file: ', image_path)
-            hesse_calculated = False        
+        m, migrad_OK, hesse_OK = fit_model(model, obs_bin_centers, ima[proj], image_path, fit_verbosity,
+                              mu=mu_init,
+                              sigma=sigma_init,
+                              fr=fr_init,
+                              N=sum(ima[proj]),)
+        m_bkgr_only, migrad_bkgr_only_OK, hesse_bkgr_only_OK = fit_model(model_bkgr_only, obs_bin_centers, ima[proj], image_path, fit_verbosity,
+                                                  N=sum(ima[proj]))
+        fit_OK *= (migrad_OK & hesse_OK)
 
-        try:
-            m.migrad()
-        except:  
-            print('m.migrad() error, file: ', image_path)
-            hesse_calculated = False
+        if fit_OK:
+            # these are fdor chi2 calculation
+            model_prediction = model(obs_bin_centers, **dict(m.values))
+            model_bkgr_only_prediction = model_bkgr_only(obs_bin_centers, **dict(m_bkgr_only.values))
+            fit_features[proj] = extract_fit_features(m, m_bkgr_only, model_prediction, model_bkgr_only_prediction, ima[proj])
+            # these are for plotting
+            model_prediction_grid[proj]['model'] = model(obs_grid, **dict(m.values))
+            model_bkgr_only_prediction_grid[proj]['model'] = model_bkgr_only(obs_grid, **dict(m_bkgr_only.values))
+            # model_prediction_grid[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
+            # model_prediction_grid[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
 
-        try:
-            m.hesse()
-        except:
-            print('m.hesse() error, file: ', image_path)
-            hesse_calculated = False
-        
-        if hesse_calculated:
-            fit_param_values = dict(m.values)
-            model_prediction[proj]['model'] = model(obs_grid, **fit_param_values)
-            model_prediction[proj]['sig'] = fit_param_values['N']*fit_param_values['fr']*norm_pdf(obs_grid, fit_param_values['mu'], fit_param_values['sigma'])
-            model_prediction[proj]['bkgr'] = fit_param_values['N']*(1-fit_param_values['fr'])*uniform_pdf(obs_grid)
-            fit_features[proj] = extract_fit_features(m, model, ima[proj], obs_bin_centers)
-    
-    if hesse_calculated:
-       fit2D_features = extract_fit_global_features(fit_features, ima)
+    if fit_OK:
+       fit_global_features = extract_fit_global_features(fit_features, ima)
        global_features = extract_global_features(image_path)
-       df = fill_dataframe(df, global_features, fit_features, fit2D_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
-       plot_projections(ima, model_prediction, obs_edges, obs_grid, fit_params=fit_features,
-                     close_image=True, savefig=True, output_folder=output_folder_images, image_name=global_features['image_name'])
+       df = fill_dataframe(df, global_features, fit_features, fit_global_features, log_me=log_me, log_index=log_index, output_folder=output_folder_data)
+       plot_projections(ima, model_prediction_grid, obs_edges, obs_grid, fit_params=fit_features,
+                     close_image=True, save_fig=True, output_folder=output_folder_images, image_name=global_features['image_name'].split('.png')[0])
+       plot_projections(ima, model_bkgr_only_prediction_grid, obs_edges, obs_grid, #fit_params=fit_features,
+                     close_image=True, save_fig=True, output_folder=output_folder_images, image_name=global_features['image_name'].split('.png')[0]+'_bkgr_only')
        gc.collect()
 
 print('time: ', time.time() - t_0)
-

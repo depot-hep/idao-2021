@@ -25,13 +25,17 @@ def norm_pdf(x, mu, sigma):
 
 @nb.njit(**kwd)
 def uniform_pdf(x):
-    obs_left, obs_right = 230, 350 # this is badly hardcoding, i know
+    obs_left, obs_right = 230, 350 # please forgive me my sins
     x_in_range = (x >= obs_left) & (x <= obs_right)
     return np.where(x_in_range, 1/(obs_right - obs_left), 0)
 
 @nb.njit(**kwd)
 def model(x, mu, sigma, fr, N):
     return N*(fr*norm_pdf(x, mu, sigma) + (1-fr)*uniform_pdf(x))
+
+@nb.njit(**kwd)
+def model_bkgr_only(x, N):
+    return N*(uniform_pdf(x))
 
 ############################################################
 class MyChi2:
@@ -46,3 +50,27 @@ class MyChi2:
         ym = self.model(self.x, *par)
         chi2 = custom_chi2(self.y, self.y_err, ym)
         return chi2
+
+def fit_model(model, obs_bin_centers, image_array, image_path, fit_verbosity, **init_dict):
+    migrad_OK = True
+    hesse_OK = True
+    chi2 = MyChi2(model, obs_bin_centers, image_array)
+    m = Minuit(chi2, print_level=fit_verbosity, errordef=1, **init_dict)
+    try:
+        m.migrad()
+    except:
+        print('m.migrad() error, file: ', image_path)
+        migrad_OK = False
+
+    try:
+        m.migrad()
+    except:
+        print('m.migrad() error, file: ', image_path)
+        hesse_OK = False
+
+    try:
+        m.hesse()
+    except:
+        print('m.hesse() error, file: ', image_path)
+        hesse_OK = False
+    return m, migrad_OK, hesse_OK

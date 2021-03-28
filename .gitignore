@@ -7,6 +7,7 @@ bin-release/
 # Other files and folders
 .settings/
 data_studies/fit_results
+data_studies/.ipynb_checkpoints/*
 
 # Executables
 *.swf

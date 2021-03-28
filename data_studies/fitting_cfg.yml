@@ -4,7 +4,7 @@ log_step: 1000
 fit_verbosity: 0 # values from 0 to 2 are valid
 output_folder_data: 'output/private_test' # don't forget to create this directory
 output_folder_images: 'fit_results/private_test' # don't forget to create this directory
-obs_range: [230, 350] # change also in fit_model.py (hardcoded there)
+obs_range: [230, 350] # change also in uniform_pdf() in fit_model.py (hardcoded there)
 init_values:
   mu: 290
   sigma: 6
