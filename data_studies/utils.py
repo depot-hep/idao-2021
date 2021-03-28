@@ -8,7 +8,7 @@ from PIL import Image
 import mplhep
 mplhep.set_style('CMS')
 
-import cv2, os
+import cv2, os, csv
 
 def counts_to_datapoints(ima_x, ima_y, obs_left, obs_right):
     obs_edges = np.array(range(obs_left, obs_right + 1))
@@ -160,31 +160,75 @@ def plot_projections(data_counts, model_prediction, data_bin_edges, model_predic
     if close_image:
         plt.close(fig)
 
-def plot_images(dataset_folder, class_to_plot=None, energy_to_plot=None,
+    
+def plot_images(dataset_folder, im_filename=None, class_to_plot=None, energy_to_plot=None,
                 crop_images=True, crop_size = (100,100), standardize = False,
                 max_num_images = 15, rand_seed=10):
-
-    # parse image list
-    img_names = os.listdir(dataset_folder)
-
-    # train/test image folder
-    if 'public_test' in dataset_folder or 'private_test' in dataset_folder:
-        train_data = False
+    
+    # Input: dataset_folder
+    # Output: function plots images in accordance to specified parameters (see below) and returns arrays of data that were plotted
+    
+    # dataset_folder, str: path to idao_dataset
+    # im_filename, list or str: list of *.png files specifying what images to plot OR string specifying a txt/csv file with a list of images to plot 
+    # class_to_plot, str: 'ER' or 'NR'
+    # energy_to_plot, int: 1, 3, 6, 10, 20, 30
+    # crop_images, bool: if True, crop_size parameter will be used to crop an image of the specified size
+    # crop_size, tuple: size of the cropped image
+    # standardize, bool: if True, contrast of images is increased
+    # max_num_images, int: maximal number of images to be plotted
+    # rand_seed: random seed (required for permutations of images)
+    
+    # parse paths of all images
+    folders = ['train/ER/', 'train/NR/', 'public_test/', 'private_test/']
+    im_names = []
+    im_paths = [] 
+    for fld in folders:
+        fdl_name = dataset_folder + fld
+        ims = os.listdir(dataset_folder+fld)
+        im_names+=ims
+        ims = [fdl_name+ims[i] for i in range(len(ims))]
+        im_paths += ims
+    
+    # get a list of images to be plotted (all images or specified in a list, a txt file or a cvs file)
+    cl_label, reg_label = [], []
+    if isinstance(im_filename, list):
+        img_names = list(im_filename)
+    elif im_filename == None:
+        # parse image list
+        img_names = im_names
+    elif isinstance(im_filename, str) and im_filename[-3:] == 'txt':
+        f = open(im_filename, 'r')
+        Lines = f.readlines()
+        img_names = [line.strip() for line in Lines]
+    elif isinstance(im_filename, str) and im_filename[-3:] == 'csv':
+        with open(im_filename, 'r') as file:
+            reader = csv.reader(file)
+            img_names = [row for row in reader]
+        # delete header    
+        img_names = img_names[1:]
+        cl_label = [str(int(float(img_names[i][1]))) for i in range(len(img_names))]
+        reg_label = [str(int(float(img_names[i][2])))+'keV' for i in range(len(img_names))]
+        img_names = [img_names[i][0] for i in range(len(img_names))]
     else:
-        train_data = True
+        print('Unknown file format')
+        return
 
     # select a subset of images of specific class and energy to be plotted
-    if class_to_plot != None and energy_to_plot != None  and train_data:
+    if class_to_plot != None and energy_to_plot != None:
         required_im_name = class_to_plot + '_' + str(energy_to_plot) + '_keV'
         im_fl = [required_im_name in img_names[idx] for idx in range(len(img_names))]
         img_names = [img_names[idx] for idx in range(len(img_names)) if im_fl[idx]]
-
-    # permute images randomly
-    num_images = len(img_names)
-    np.random.seed(rand_seed)
-    rand_permutation = np.random.permutation(num_images)
-    img_names = [img_names[rand_permutation[i]] for i in range(num_images)]
-
+    
+    if rand_seed != None:
+        # permute images randomly
+        num_images = len(img_names)
+        np.random.seed(rand_seed)
+        rand_permutation = np.random.permutation(num_images)
+        img_names = [img_names[rand_permutation[i]] for i in range(num_images)]
+        cl_label = [cl_label[rand_permutation[i]] for i in range(len(cl_label))]
+        reg_label = [reg_label[rand_permutation[i]] for i in range(len(reg_label))]
+        cl_label = [cl_label[i]+'(ER)' if cl_label[i]==1 else str(cl_label[i])+'(NR)' for i in range(len(cl_label))]
+        
     # create subplots
     nb_cols = 5
     nb_rows = (min(len(img_names), max_num_images) - 1) // nb_cols + 1
@@ -192,20 +236,41 @@ def plot_images(dataset_folder, class_to_plot=None, energy_to_plot=None,
     if nb_rows == 1:
         axs = [axs]
     n = 0
-
+    
+    # create an array to save plotted data
     if crop_images:
         plotted_ims = np.zeros((max_num_images, crop_size[0], crop_size[1]))
     else:
         plotted_ims = np.zeros((max_num_images, 576, 576))
 
-
     # iterate over the selected images
     for i, img_name in enumerate(img_names):
+        
+        # read an image
+        im_idx = np.argwhere([img_name in im_paths[i] for i in range(len(im_paths))])
+        if np.size(im_idx) > 0:
+            im_idx = im_idx[0][0]
+            img = cv2.imread(im_paths[im_idx], cv2.IMREAD_COLOR)
+        else:
+            print(img_name, ' not found')
+            # break when max_num_images images have been plotted
+            if i == max_num_images - 1:
+                break
+            continue
+        
+        # save folder name for further printing
+        if 'public_test' in im_paths[im_idx].split('/'):
+            label_folder = 'publ'
+        if 'private_test' in im_paths[im_idx].split('/'):
+            label_folder = 'priv'
+    
         row_idx, col_idx = i // nb_cols, i - nb_cols*(i // nb_cols)
 
         # parse name (different for train and test images)
         if len(img_name.split('/')[-1].split('_')) < 2:
-            label = img_name[:10] + '...'
+            label = img_name[:5] + '..., ' + label_folder
+            if np.size(cl_label) > 0:
+                label+=', pred:' + cl_label[i] + ',' + reg_label[i]
         else:
             if img_name.split('/')[-1].split('_')[5] == 'ER':
                 label = 'ER_' + img_name.split('/')[-1].split('_')[6] + '_keV (' + img_name[-13:] + ')'
@@ -213,11 +278,6 @@ def plot_images(dataset_folder, class_to_plot=None, energy_to_plot=None,
                 label = 'NR_' + img_name.split('/')[-1].split('_')[7] + '_keV (' + img_name[-13:] + ')'
             else:
                 label = 'Error'
-
-        # read an image
-        if dataset_folder[-1] != '/':
-            dataset_folder += '/'
-        img = cv2.imread(dataset_folder + img_name, cv2.IMREAD_COLOR)
 
         # standardize image if necessary
         img_plot = img[:,:,0]
@@ -246,3 +306,4 @@ def plot_images(dataset_folder, class_to_plot=None, energy_to_plot=None,
     plt.show()
 
     return plotted_ims
+
