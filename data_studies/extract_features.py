@@ -74,10 +74,10 @@ for image_index, image_path in enumerate(image_paths):
                               N=sum(ima[proj]),)
         m_bkgr_only, migrad_bkgr_only_OK, hesse_bkgr_only_OK = fit_model(model_bkgr_only, obs_bin_centers, ima[proj], image_path, fit_verbosity,
                                                   N=sum(ima[proj]))
-        fit_OK *= (migrad_OK & hesse_OK)
+        fit_OK *= (migrad_OK & hesse_OK & migrad_bkgr_only_OK & hesse_bkgr_only_OK)
 
         if fit_OK:
-            # these are fdor chi2 calculation
+            # these are for chi2 calculation
             model_prediction = model(obs_bin_centers, **dict(m.values))
             model_bkgr_only_prediction = model_bkgr_only(obs_bin_centers, **dict(m_bkgr_only.values))
             fit_features[proj] = extract_fit_features(m, m_bkgr_only, model_prediction, model_bkgr_only_prediction, ima[proj])
