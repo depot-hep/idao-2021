@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from PIL import Image
 
-import mplhep
-mplhep.set_style('CMS')
+#import mplhep
+#mplhep.set_style('CMS')
 
 import cv2, os, csv
 
@@ -159,7 +159,30 @@ def plot_projections(data_counts, model_prediction, data_bin_edges, model_predic
         fig.savefig(f"{output_folder}/{image_name}_fitted.png")
     if close_image:
         plt.close(fig)
+        
+def generate_submission(cl_pred, reg_pred, im_names, submission_name):
+    
+    sample_submission = pd.read_csv('./csv_data/track1_predictions_example.csv')
+    
+    # create dataframe
+    submission = pd.DataFrame(columns=sample_submission.columns)
+    submission['id'] = im_names
+    submission['classification_predictions'] = cl_pred
+    submission['regression_predictions'] = reg_pred
 
+#     # add an entry that was exluded from the private test dataset by the 'try-except' method
+#     submission = submission.append(submission.iloc[len(submission)-1], ignore_index=True)
+#     submission['id'].iloc[len(submission)-1]  = '057f420d13253901195b932f1c9e933361e362d3'
+#     submission['classification_predictions'].iloc[len(submission)-1]  = 1 #ER
+#     submission['regression_predictions'].iloc[len(submission)-1]  = 1
+
+    # sort values by id
+    idx = submission.index
+    submission.sort_values('id', inplace=True)
+    submission.index = idx
+    
+    # save to csv
+    submission.to_csv(submission_name + '.csv', index=False, header=True)
     
 def plot_images(dataset_folder, im_filename=None, class_to_plot=None, energy_to_plot=None,
                 crop_images=True, crop_size = (100,100), standardize = False,
@@ -212,7 +235,7 @@ def plot_images(dataset_folder, im_filename=None, class_to_plot=None, energy_to_
     else:
         print('Unknown file format')
         return
-
+    
     # select a subset of images of specific class and energy to be plotted
     if class_to_plot != None and energy_to_plot != None:
         required_im_name = class_to_plot + '_' + str(energy_to_plot) + '_keV'
@@ -227,8 +250,8 @@ def plot_images(dataset_folder, im_filename=None, class_to_plot=None, energy_to_
         img_names = [img_names[rand_permutation[i]] for i in range(num_images)]
         cl_label = [cl_label[rand_permutation[i]] for i in range(len(cl_label))]
         reg_label = [reg_label[rand_permutation[i]] for i in range(len(reg_label))]
-        cl_label = [cl_label[i]+'(ER)' if cl_label[i]==1 else str(cl_label[i])+'(NR)' for i in range(len(cl_label))]
-        
+        cl_label = [cl_label[i]+'(ER)' if cl_label[i]=='1' else str(cl_label[i])+'(NR)' for i in range(len(cl_label))]
+    
     # create subplots
     nb_cols = 5
     nb_rows = (min(len(img_names), max_num_images) - 1) // nb_cols + 1
@@ -306,4 +329,5 @@ def plot_images(dataset_folder, im_filename=None, class_to_plot=None, energy_to_
     plt.show()
 
     return plotted_ims
+
 
