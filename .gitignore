@@ -9,11 +9,10 @@ bin-release/
 data_studies/fit_results
 data_studies/.ipynb_checkpoints/*
 data_studies/*.txt
-fit_results*
-fit_results_new_private/*
+data_studies/fit_results_new_private/*
+data_studies/images/.ipynb_checkpoints/*
 .DS_Store
 */.DS_Store
-data_studies/images/.ipynb_checkpoints/*
 
 # Executables
 *.swf
