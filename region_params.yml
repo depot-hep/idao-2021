@@ -1,4 +1,6 @@
 HE:
+  left: 14.
+  right: .inf
   model_params:
     boosting_type: gbdt
     objective: binary
@@ -9,19 +11,28 @@ HE:
     bagging_fraction: 0.8
     bagging_freq: 5
     verbose: -1
-    # early_stopping_rounds: 10
     seed: 777
-
   vars:
     - chi2_pvalue_x
     - chi2_pvalue_y
     - abs_dmu_x
     - abs_dmu_y
+  model_thr: 0.5
 
 MID:
+  left: 6.
+  right: 14.
+  model_params:
+    discriminator: sigma_y
   vars:
     - sigma_y
+  model_thr: 5.25
 
 LOW:
+  left: -.inf
+  right: 6.
+  model_params:
+    discriminator: sigma_y
   vars:
     - sigma_y
+  model_thr: 4.95
