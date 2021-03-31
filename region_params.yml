@@ -9,7 +9,7 @@ HE:
     bagging_fraction: 0.8
     bagging_freq: 5
     verbose: -1
-    early_stopping_rounds: 10
+    # early_stopping_rounds: 10
     seed: 777
 
   vars:
