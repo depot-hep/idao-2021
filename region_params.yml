@@ -1,0 +1,27 @@
+HE:
+  model_params:
+    boosting_type: gbdt
+    objective: binary
+    metric: binary_logloss
+    max_depth: 4
+    learning_rate: 0.1
+    feature_fraction: 0.9
+    bagging_fraction: 0.8
+    bagging_freq: 5
+    verbose: -1
+    early_stopping_rounds: 10
+    seed: 777
+
+  vars:
+    - chi2_pvalue_x
+    - chi2_pvalue_y
+    - abs_dmu_x
+    - abs_dmu_y
+
+MID:
+  vars:
+    - sigma_y
+
+LOW:
+  vars:
+    - sigma_y
