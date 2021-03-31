@@ -8,12 +8,18 @@ bin-release/
 .settings/
 data_studies/fit_results
 data_studies/.ipynb_checkpoints/*
+data_studies/*.txt
+fit_results*
+fit_results_new_private/*
+.DS_Store
+*/.DS_Store
+data_studies/images/.ipynb_checkpoints/*
 
 # Executables
 *.swf
 *.air
 *.ipa
-*.apk 
+*.apk
 
 # Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
 # should NOT be excluded as they contain compiler settings and other important
