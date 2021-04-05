@@ -11,6 +11,8 @@ data_studies/.ipynb_checkpoints/*
 data_studies/*.txt
 data_studies/fit_results_new_private/*
 data_studies/images/.ipynb_checkpoints/*
+track1_solution/.ipynb_checkpoints/*
+track1_solution/__pycache__/*
 .DS_Store
 */.DS_Store
 

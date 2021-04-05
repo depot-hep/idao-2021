@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as mpatches
 from PIL import Image
 
-#import mplhep
-#mplhep.set_style('CMS')
+import mplhep
+mplhep.set_style('CMS')
 
 import cv2, os, csv
 
