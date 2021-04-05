@@ -1,5 +1,15 @@
 # IDAO 2021: Baobab solution
 
+
+## Baobab team
+* Oleg Filatov [DESY], team leader
+  * GitHub: [@yaourtpourtoi](https://github.com/yaourtpourtoi), Telegram: [@yaourtpourtoi](https://t.me/yaourtpourtoi), Mail: <oleg.filatov@phystech.edu> 
+* Andrey Znobishchev [Skoltech]
+  * GitHub: [@AndreiZn](https://github.com/AndreiZn), LinkedIn: [Andrei Znobishchev](https://ru.linkedin.com/in/andrei-znobishchev-9a498981), Telegram: [@andreizn](https://t.me/andreizn), Mail: <andrei.znobishchev@skoltech.ru> 
+* Andrei Filatov [MIPT, EPFL]
+  * GitHub: [@anvilarth](https://github.com/anvilarth), Mail: <filatovandreiv@gmail.com>
+
+--- 
 This repository contains our team' solution to the qualification round of IDAO 2021, which resulted in the 5th place on Track 1. We carefully elaborate on the workflow of our approach in [this presentation](https://github.com/depot-hep/idao-2021/blob/main/Baobab-IDAO-2021-solution.pdf) - feel free to have a look there for getting a general understanding of the idea. In this README we just briefly describe the code's structure and further technical details on how to run it. 
 
 The repo is structured as follows:
@@ -16,11 +26,3 @@ In order to run the fitting on images use `python extract_features.py fitting_cf
 Once the fit is done and output `.csv` files (see `data_studies/csv_data` for those we used) are obtained, one can proceed to the prediction step. Submission file with corresponding predictions is produced by running through all the cells of `track1_solution/pipeline.ipynb` notebook. Please have a look there and into the presentation to get more details about the actual inference step. Also note that `region_params.yml` file contains the configuration parameters required by the prediction procedure. Last but not the least, it's worth mentioning `aux_functions.py` where we keep some helper functions, most notably the one which produces the calibration curve.
 
 As for `track2_solution`, the structure inherits from the sample submission and `generate_submission.py` contains all the necessary code for producing submission predictions.
-
-## Baobab team
-* Oleg Filatov [DESY], team leader
-  * GitHub: [@yaourtpourtoi](https://github.com/yaourtpourtoi), Telegram: [@yaourtpourtoi](https://t.me/yaourtpourtoi), Mail: <oleg.filatov@phystech.edu> 
-* Andrey Znobishchev [Skoltech]
-  * GitHub: [@AndreiZn](https://github.com/AndreiZn), LinkedIn: [Andrei Znobishchev](https://ru.linkedin.com/in/andrei-znobishchev-9a498981), Telegram: [@andreizn](https://t.me/andreizn), Mail: <andrei.znobishchev@skoltech.ru> 
-* Andrei Filatov [MIPT, EPFL]
-  * GitHub: [@anvilarth](https://github.com/anvilarth), Mail: <filatovandreiv@gmail.com>
