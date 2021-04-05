@@ -18,6 +18,9 @@ Once the fit is done and output `.csv` files (see `data_studies/csv_data` for th
 As for `track2_solution`, the structure inherits from the sample submission and `generate_submission.py` contains all the necessary code for producing submission predictions.
 
 ## Baobab team
-* Oleg Filatov [DESY] (<oleg.filatov@phystech.edu>), team leader
-* Andrey Znobishchev [Skoltech] (<andrei.znobishchev@skoltech.ru>) 
-* Andrei Filatov [MIPT, EPFL] (<filatov.av@phystech.edu>)
+* Oleg Filatov [DESY], team leader
+  * GitHub: [@yaourtpourtoi](https://github.com/yaourtpourtoi), Telegram: [@yaourtpourtoi](https://t.me/yaourtpourtoi), Mail: <oleg.filatov@phystech.edu> 
+* Andrey Znobishchev [Skoltech]
+  * GitHub: [@AndreiZn](https://github.com/AndreiZn), LinkedIn: [Andrei Znobishchev](https://ru.linkedin.com/in/andrei-znobishchev-9a498981), Telegram: [@andreizn](https://t.me/andreizn), Mail: <andrei.znobishchev@skoltech.ru> 
+* Andrei Filatov [MIPT, EPFL]
+  * GitHub: [@anvilarth](https://github.com/anvilarth), Mail: <filatovandreiv@gmail.com>
