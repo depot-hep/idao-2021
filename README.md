@@ -10,7 +10,7 @@
   * GitHub: [@anvilarth](https://github.com/anvilarth), Mail: <filatovandreiv@gmail.com>
 
 ## Instructions
-This repository contains our team' solution to the qualification round of IDAO 2021, which resulted in the 5th place on Track 1. We carefully elaborate on the workflow of our approach in [this presentation](https://github.com/depot-hep/idao-2021/blob/main/Baobab-IDAO-2021-solution.pdf) - feel free to have a look there for getting a general understanding of the idea. In this README we just briefly describe the code's structure and further technical details on how to run it. 
+This repository contains our team's solution to the qualification round of IDAO 2021, which resulted in the 5th place on Track 1. We carefully elaborate on the workflow of our approach in [this presentation](https://github.com/depot-hep/idao-2021/blob/main/Baobab-IDAO-2021-solution.pdf) - feel free to have a look there for getting a general understanding of the idea. In this README we just briefly describe the code's structure and further technical details on how to run it. 
 
 The repo is structured as follows:
 * `data_studies` contains all the necessary files to perform the fitting and plotting of images + archived studies we did on the way.
